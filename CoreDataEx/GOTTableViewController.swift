@@ -6,40 +6,55 @@
 //
 
 import UIKit
+import CoreData
 
 class GOTTableViewController: UITableViewController {
-
+    var characters: [Character] = []
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
-
-        // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-        // self.navigationItem.rightBarButtonItem = self.editButtonItem
+        characters = loadGot()
     }
 
+    @IBAction func plusPressed(_ sender: UIBarButtonItem) {
+        let alert = UIAlertController(title: "New Character", message: "Add a new Character", preferredStyle: .alert)
+        let saveAction = UIAlertAction(title: "Save", style: .default){
+            (UIAlertAction) in
+            let name = alert.textFields?[0].text ?? ""
+            let location = alert.textFields?[1].text ?? ""
+            self.saveGot(name, location)
+            self.tableView.reloadData()
+        }
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel)
+        alert.addTextField{(textField) in
+            textField.placeholder = "name"}
+        alert.addTextField{(textField) in
+            textField.placeholder = "location"}
+        alert.addAction(saveAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true, completion: nil)
+    }
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
         // #warning Incomplete implementation, return the number of sections
-        return 0
+        return 1
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
-        return 0
+        return characters.count
     }
 
-    /*
+    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "reuseIdentifier", for: indexPath)
-
-        // Configure the cell...
-
+        let cell = tableView.dequeueReusableCell(withIdentifier: "myCell", for: indexPath)
+        cell.textLabel?.text = characters[indexPath.row].name
+        cell.detailTextLabel?.text = characters[indexPath.row].location
         return cell
     }
-    */
+    
 
     /*
     // Override to support conditional editing of the table view.
@@ -49,17 +64,18 @@ class GOTTableViewController: UITableViewController {
     }
     */
 
-    /*
+    
     // Override to support editing the table view.
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            // Delete the row from the data source
-            tableView.deleteRows(at: [indexPath], with: .fade)
+            deleteGOT(characters[indexPath.row])
+            characters = loadGot()
+            tableView.reloadData()
         } else if editingStyle == .insert {
             // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
         }    
     }
-    */
+    
 
     /*
     // Override to support rearranging the table view.
@@ -85,5 +101,44 @@ class GOTTableViewController: UITableViewController {
         // Pass the selected object to the new view controller.
     }
     */
-
+    
+    func loadGot()-> [Character]{
+        if let appDelegate = UIApplication.shared.delegate as? AppDelegate{
+            let context = appDelegate.persistentContainer.viewContext
+            let fetchRequest = NSFetchRequest<Character>(entityName: "Character")
+            do{
+                try characters = context.fetch(fetchRequest)
+            }catch{
+                print("error!! go away")
+            }
+        }
+        return characters
+    }
+    func saveGot(_ name: String, _ location: String){
+        if let appDelegate = UIApplication.shared.delegate as? AppDelegate{
+            let context = appDelegate.persistentContainer.viewContext
+            if let entity = NSEntityDescription.entity(forEntityName: "Character", in: context){
+                let character = NSManagedObject(entity: entity, insertInto: context)
+                character.setValue(name, forKey: "name")
+                character.setValue(location, forKey: "location")
+                do{
+                    try context.save()
+                    characters.append(character as! Character)
+                }catch{
+                        print("Warning! Error!!")
+                    }
+            }
+        }
+    }
+    func deleteGOT(_ object: Character){
+        if let appDelegate = UIApplication.shared.delegate as? AppDelegate{
+            let context = appDelegate.persistentContainer.viewContext
+            context.delete(object)
+            do{
+               try context.save()
+            }catch{
+                
+            }
+        }
+    }
 }
